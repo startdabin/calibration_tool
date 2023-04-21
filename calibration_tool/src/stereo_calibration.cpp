@@ -29,7 +29,7 @@ void findCorner(std::vector<cv::Mat> imgs, cv::Size board_size,
 	}
 }
 
-// 求相机初始内参矩阵
+
 void findObjectPoints(std::vector<std::vector<cv::Point2f>>& imgs_points,
 							cv::Size board_size, cv::Size img_size, float square_length,
 							std::vector<std::vector<cv::Point3f>>& object_points)
@@ -116,7 +116,62 @@ void stereoClibrate(const std::vector<cv::Mat>& imgs_l,
 	}
 	std::cout << "stereo clibrate finish!!!" << std::endl;
 }
+void calibrateQ(const cv::Mat& chessboard_image,cv::Size board_size, float board_length, std::string src_param, std::string dst_param) {
 
+	cv::Mat camera_matrix_l, dist_coeffs_l, camera_matrix_r, dist_coeffs_r, R, T, R1, R2, P1, P2, Qs, Qd;
+	// load stero param
+	cv::FileStorage fs_read(src_param, cv::FileStorage::READ);
+	if (fs_read.isOpened())
+	{
+		fs_read["M1"] >> camera_matrix_l;
+		fs_read["D1"] >> dist_coeffs_l;
+
+		fs_read["M2"] >> camera_matrix_r;
+		fs_read["D2"] >> dist_coeffs_r;
+
+		fs_read["R"] >> R;
+		fs_read["T"] >> T;
+		fs_read["R1"] >> R1;
+		fs_read["R2"] >> R2;
+		fs_read["P1"] >> P1;
+		fs_read["P2"] >> P2;
+		fs_read["Q"] >> Qs;
+
+		fs_read.release();
+	}
+	std::vector<cv::Point2f> corners;
+	bool found_corner = cv::findChessboardCorners(chessboard_image, board_size, corners);
+	if (found_corner) {
+		cv::cornerSubPix(chessboard_image, corners, cv::Size(5, 5), cv::Size(-1, -1),
+			cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS,
+				30, 0.01));
+	}
+	bool draw_corners = true;
+	if (draw_corners) {
+		cv::Mat corners_img;
+		chessboard_image.copyTo(corners_img);
+		cv::cvtColor(corners_img, corners_img, cv::COLOR_GRAY2BGR);
+		std::cout << "channel: " << corners_img.channels() << std::endl;
+		cv::drawChessboardCorners(corners_img, board_size, corners, found_corner);
+
+		cv::imshow("corners_img", corners_img);
+		cv::waitKey();
+	}
+	
+
+	// save param
+	cv::FileStorage fs_write(dst_param, cv::FileStorage::WRITE);
+	if (fs_write.isOpened())
+	{
+		fs_write << "M1" << camera_matrix_l << "D1" << dist_coeffs_l
+			<< "M2" << camera_matrix_r << "D2" << dist_coeffs_r
+			<< "R" << R << "T" << T << "R1" << R1
+			<< "R2" << R2 << "P1" << P1 << "P2" << P2
+			<< "Q" << Qd;
+		fs_write.release();
+	}
+
+}
 // test demo  
 void stereoCalibrationDemo(std::string left_img_dir, std::string right_img_dir, std::string param_path) {
 	std::string left_imgs_path = left_img_dir;

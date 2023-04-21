@@ -16,4 +16,7 @@ void stereoClibrate(const std::vector<cv::Mat>& imgs_l,
 			bool isSubCorner=true);
 
 // 标定重投影矩阵到特定坐标系
-void calibrateQ();
+void calibrateQ(const cv::Mat& chessboard_image, cv::Size board_size, float board_length, std::string src_param, std::string dst_param);
+
+// test demo  
+void stereoCalibrationDemo(std::string left_img_dir, std::string right_img_dir, std::string param_path);
