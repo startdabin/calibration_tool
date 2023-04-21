@@ -3,18 +3,16 @@
 #include "src/utils.h"
 
 int main() {
-	std::string src_param_path = "G:\\data\\3d_reconstruction\\calibrate\\t0409\\stereo_param.yml";
-	std::string dst_param_path = "G:\\data\\3d_reconstruction\\calibrate\\t0409\\dst_param.yml";
+	std::string src_param_path = "F:\\data\\calibrate\\stereo_param.yml";
+	std::string dst_param_path = "F:\\data\\calibrate\\new_param.yml";
 
-	cv::Size board_size{ 11,8 };
+	cv::Size board_size{ 8,6 };
 	float square_length = 10;
 
-	std::string chessboard_image_name = "G:\\data\\3d_reconstruction\\calibrate\\t0409\\cs.png";
+	std::string chessboard_image_name = "F:\\data\\calibrate\\cc.png";
 	auto chessboard_image = cv::imread(chessboard_image_name, cv::IMREAD_GRAYSCALE);
 	
-	calibrateQ(chessboard_image, { 8,5 }, 10, src_param_path, dst_param_path);
-	
-	//calibrateQ()
+	calibrateRT(chessboard_image, board_size, square_length, src_param_path, dst_param_path);
 
 	return 0;
 }

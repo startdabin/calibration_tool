@@ -116,9 +116,9 @@ void stereoClibrate(const std::vector<cv::Mat>& imgs_l,
 	}
 	std::cout << "stereo clibrate finish!!!" << std::endl;
 }
-void calibrateQ(const cv::Mat& chessboard_image,cv::Size board_size, float board_length, std::string src_param, std::string dst_param) {
-
-	cv::Mat camera_matrix_l, dist_coeffs_l, camera_matrix_r, dist_coeffs_r, R, T, R1, R2, P1, P2, Qs, Qd;
+void calibrateRT(const cv::Mat& chessboard_image,cv::Size board_size, float board_length, std::string src_param, std::string dst_param) {
+	std::cout << "board_length:   " << board_length << std::endl;
+	cv::Mat camera_matrix_l, dist_coeffs_l, camera_matrix_r, dist_coeffs_r, R, T, R1, R2, P1, P2, Q;
 	// load stero param
 	cv::FileStorage fs_read(src_param, cv::FileStorage::READ);
 	if (fs_read.isOpened())
@@ -135,7 +135,7 @@ void calibrateQ(const cv::Mat& chessboard_image,cv::Size board_size, float board
 		fs_read["R2"] >> R2;
 		fs_read["P1"] >> P1;
 		fs_read["P2"] >> P2;
-		fs_read["Q"] >> Qs;
+		fs_read["Q"] >> Q;
 
 		fs_read.release();
 	}
@@ -147,18 +147,41 @@ void calibrateQ(const cv::Mat& chessboard_image,cv::Size board_size, float board
 				30, 0.01));
 	}
 	bool draw_corners = true;
+	std::vector<cv::Point2f> select_points;
+	cv::Mat corners_img;
 	if (draw_corners) {
-		cv::Mat corners_img;
 		chessboard_image.copyTo(corners_img);
 		cv::cvtColor(corners_img, corners_img, cv::COLOR_GRAY2BGR);
 		std::cout << "channel: " << corners_img.channels() << std::endl;
-		cv::drawChessboardCorners(corners_img, board_size, corners, found_corner);
+		//cv::drawChessboardCorners(corners_img, board_size, corners, found_corner);
 
-		cv::imshow("corners_img", corners_img);
-		cv::waitKey();
+		// 8 0 39
+		select_points.emplace_back(corners[7]);
+		select_points.emplace_back(corners[0]);
+		select_points.emplace_back(corners[47]);
+		select_points.emplace_back(corners[40]);
+		cv::circle(corners_img, select_points[0], 4, { 255, 0, 0 }, 2);
+		cv::circle(corners_img, select_points[1], 4, { 0, 255, 0 }, 2);
+		cv::circle(corners_img, select_points[2], 4, { 0, 0, 255 }, 2);
+		cv::circle(corners_img, select_points[3], 4, { 0, 255, 255 }, 2);
 	}
-	
+	std::vector<cv::Point3f> object_points;
+	object_points.emplace_back(cv::Point3f(0, 0, 0));
+	object_points.emplace_back(cv::Point3f(0, 7 * board_length, 0));
+	object_points.emplace_back(cv::Point3f(5 * board_length, 0, 0));
+	object_points.emplace_back(cv::Point3f(5 * board_length, 7 * board_length, 0));
 
+	std::cout <<"board_length:   " << board_length << std::endl;
+	
+	cv::Mat Rw, Tw;
+	bool status = cv::solvePnP(object_points, select_points, camera_matrix_l, dist_coeffs_l, Rw, Tw);
+	cv::Rodrigues(Rw, Rw);
+	std::cout <<"Rw:	" << Rw << std::endl;
+	std::cout <<"Tw:	" << Tw << std::endl;
+	std::cout <<"Qs:	" << Q << std::endl;
+	cv::drawFrameAxes(corners_img, camera_matrix_l, dist_coeffs_l, Rw, Tw, 30);
+	cv::imshow("corners_img", corners_img);
+	cv::waitKey();
 	// save param
 	cv::FileStorage fs_write(dst_param, cv::FileStorage::WRITE);
 	if (fs_write.isOpened())
@@ -167,7 +190,7 @@ void calibrateQ(const cv::Mat& chessboard_image,cv::Size board_size, float board
 			<< "M2" << camera_matrix_r << "D2" << dist_coeffs_r
 			<< "R" << R << "T" << T << "R1" << R1
 			<< "R2" << R2 << "P1" << P1 << "P2" << P2
-			<< "Q" << Qd;
+			<< "Q" << Q<<"Rw"<<Rw<<"Tw"<<Tw;
 		fs_write.release();
 	}
 
